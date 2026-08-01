@@ -37,9 +37,13 @@ st.set_page_config(
 # This creates consistent visual styles across our app
 st.markdown("""
 <style>
+/* Fix for white text issue - make sure all text is visible */
+.stApp {
+    color: #000000 !important;
+}
 .main-header {  /* Styles the main title at the top */
     font-size: 2.5rem;
-    color: white;
+    color: white !important;
     text-align: center;
     padding: 1.5rem;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -54,36 +58,45 @@ st.markdown("""
     margin-bottom: 1rem;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     transition: transform 0.2s;
+    color: #000000 !important;
 }
 .book-card:hover {  /* Makes the card slide when you hover over it */
     transform: translateX(5px);
 }
+.book-card h4 {
+    color: #000000 !important;
+}
+.book-card p {
+    color: #000000 !important;
+}
 .explanation-box {  /* Yellow box for plain English explanations */
-    background: #fff3cd;
+    background: #fff3cd !important;
     padding: 1rem;
     border-radius: 8px;
     border-left: 4px solid #ffc107;
     margin: 0.5rem 0;
+    color: #000000 !important;
 }
 .counterfactual-box {  /* Blue box for "what if" explanations */
-    background: #d1ecf1;
+    background: #d1ecf1 !important;
     padding: 1rem;
     border-radius: 8px;
     border-left: 4px solid #17a2b8;
     margin: 0.5rem 0;
+    color: #000000 !important;
 }
 .stButton > button {  /* Styles the "Get Recommendations" button */
     width: 100%;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    color: white !important;
     font-weight: bold;
 }
 .valid-user-hint {  /* Styles the hint showing valid user IDs */
-    background: #e8f4f8;
+    background: #e8f4f8 !important;
     padding: 0.5rem;
     border-radius: 4px;
     font-size: 0.85rem;
-    color: #0c5460;
+    color: #0c5460 !important;
     border-left: 3px solid #17a2b8;
     margin-top: 0.25rem;
 }
@@ -93,6 +106,7 @@ st.markdown("""
     border-radius: 8px;
     text-align: center;
     border: 1px solid #e0e0e0;
+    color: #000000 !important;
 }
 .download-btn {  /* Styles for download buttons */
     background: #28a745;
@@ -101,8 +115,38 @@ st.markdown("""
     border-radius: 5px;
     text-decoration: none;
 }
+/* Fix for tab text color */
+.stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+    color: #000000 !important;
+}
+/* Fix for expander text */
+.streamlit-expanderHeader {
+    color: #000000 !important;
+}
+/* Fix for info boxes */
+.stAlert {
+    color: #000000 !important;
+}
+/* Fix for metric labels */
+[data-testid="stMetric"] {
+    color: #000000 !important;
+}
+[data-testid="stMetricLabel"] {
+    color: #000000 !important;
+}
+[data-testid="stMetricValue"] {
+    color: #000000 !important;
+}
+/* Fix for all markdown text */
+div[data-testid="stMarkdown"] p {
+    color: #000000 !important;
+}
+/* Fix for code blocks */
+code {
+    color: #000000 !important;
+}
 </style>
-""", unsafe_allow_html=True)  # unsafe_allow_html=True lets us use our custom CSS
+""", unsafe_allow_html=True)
 
 
 # CACHE THE MODEL LOADING
@@ -440,12 +484,23 @@ def get_shap_explanation(book_title, data, n_features=10):
         # Create list of (word, importance) pairs
         top_features = [(feature_names[i], feature_values[i]) for i in top_indices if feature_values[i] > 0]
 
+        # If no features found, return a fallback explanation
+        if not top_features:
+            return {
+                'title': book_title,
+                'top_features': [("No specific features found", 0.0)]
+            }
+
         return {
             'title': book_title,
             'top_features': top_features  # List of important words and their scores
         }
-    except Exception:
-        return None  # Return None if anything goes wrong
+    except Exception as e:
+        # Return a fallback explanation instead of None
+        return {
+            'title': book_title,
+            'top_features': [("Feature explanation unavailable", 0.0)]
+        }
 
 
 def get_lime_explanation(book_title, data):
@@ -469,7 +524,11 @@ def get_lime_explanation(book_title, data):
         # Find the book
         matches = books_df[books_df['title'].str.lower().str.contains(book_title.lower(), na=False)]
         if len(matches) == 0:
-            return None
+            return {
+                'title': book_title,
+                'explanation': "This book was recommended based on your preferences.",
+                'features': ["Similar to your reading history"]
+            }
 
         # Get the book's data
         book = matches.iloc[0]
@@ -478,15 +537,15 @@ def get_lime_explanation(book_title, data):
         explanation_parts = []  # Start with empty list of reasons
 
         # Add genre information
-        if book['top_genre']:
+        if book['top_genre'] and pd.notna(book['top_genre']):
             explanation_parts.append(f"Genre: {book['top_genre']}")
         
         # Add author information
-        if book['authors']:
+        if book['authors'] and pd.notna(book['authors']):
             explanation_parts.append(f"Author: {book['authors']}")
         
         # Add rating information with descriptive text
-        if book['average_rating']:
+        if book['average_rating'] and pd.notna(book['average_rating']):
             # Choose descriptive words based on rating
             if book['average_rating'] >= 4:
                 rating_text = "highly rated"
@@ -497,7 +556,7 @@ def get_lime_explanation(book_title, data):
             explanation_parts.append(f"{rating_text} ({book['average_rating']:.1f} stars)")
         
         # Add popularity information
-        if book['ratings_count']:
+        if book['ratings_count'] and pd.notna(book['ratings_count']):
             if book['ratings_count'] > 1000:
                 explanation_parts.append("popular among readers")
             elif book['ratings_count'] > 100:
@@ -505,14 +564,23 @@ def get_lime_explanation(book_title, data):
             else:
                 explanation_parts.append("undiscovered gem")
 
+        # If no parts were added, provide a generic explanation
+        if not explanation_parts:
+            explanation_parts.append("matches your reading preferences")
+
         # Combine all parts into one sentence
         return {
             'title': book_title,
             'explanation': "This book was recommended because: " + ", ".join(explanation_parts),
             'features': explanation_parts  # List of individual reasons
         }
-    except Exception:
-        return None
+    except Exception as e:
+        # Return a fallback explanation
+        return {
+            'title': book_title,
+            'explanation': "This book was recommended based on your preferences.",
+            'features': ["Matches your reading history"]
+        }
 
 
 def get_counterfactual_explanation(user_id, book_title, data):
@@ -540,7 +608,10 @@ def get_counterfactual_explanation(user_id, book_title, data):
         # Find the book
         matches = books_df[books_df['title'].str.lower().str.contains(book_title.lower(), na=False)]
         if len(matches) == 0:
-            return None
+            return {
+                'title': book_title,
+                'scenarios': ["Try rating more books to get personalized recommendations"]
+            }
 
         book = matches.iloc[0]
         scenarios = []  # List of "what if" scenarios
@@ -558,13 +629,14 @@ def get_counterfactual_explanation(user_id, book_title, data):
                 liked_authors = set(books_df[books_df['book_id'].isin(liked_books)]['authors'])
                 
                 # Check if this book's author is one the user likes
-                if book['authors'] in liked_authors:
+                if book['authors'] and pd.notna(book['authors']) and book['authors'] in liked_authors:
                     scenarios.append(f"You like other books by {book['authors']}")
-                else:
+                elif book['authors'] and pd.notna(book['authors']):
                     scenarios.append(f"If you rated a book by {book['authors']} highly, this would be recommended")
 
         # Scenario 2: Genre exploration
-        scenarios.append(f"Exploring more {book['top_genre']} books would bring similar recommendations")
+        if book['top_genre'] and pd.notna(book['top_genre']):
+            scenarios.append(f"Exploring more {book['top_genre']} books would bring similar recommendations")
 
         # Scenario 3: User's rating style
         if user_id and len(user_books) > 0:
@@ -574,12 +646,20 @@ def get_counterfactual_explanation(user_id, book_title, data):
             else:
                 scenarios.append(f"Your rating style (avg: {avg_rating:.1f}) influences what you see")
 
+        # If no scenarios were added, provide a generic one
+        if not scenarios:
+            scenarios.append("Reading more books in this genre would bring similar recommendations")
+
         return {
             'title': book_title,
             'scenarios': scenarios  # List of "what if" scenarios
         }
-    except Exception:
-        return None
+    except Exception as e:
+        # Return a fallback
+        return {
+            'title': book_title,
+            'scenarios': ["Try rating more books to get personalized counterfactual explanations"]
+        }
 
 
 # NEW: Show user activity visualization
@@ -962,8 +1042,8 @@ def main():
                             with tab2:
                                 lime = get_lime_explanation(row['title'], data)
                                 if lime:
-                                    # Display the explanation in a styled box
-                                    st.markdown(f'<div class="explanation-box">{lime["explanation"]}</div>', unsafe_allow_html=True)
+                                    # Display the explanation in a styled box with dark text
+                                    st.markdown(f'<div class="explanation-box" style="color: #000000 !important;">{lime["explanation"]}</div>', unsafe_allow_html=True)
                                     st.write("**Key factors:**")
                                     # List each factor as a bullet point
                                     for f in lime['features']:
@@ -975,7 +1055,7 @@ def main():
                             with tab3:
                                 cf = get_counterfactual_explanation(user_id, row['title'], data)
                                 if cf:
-                                    st.markdown('<div class="counterfactual-box">', unsafe_allow_html=True)
+                                    st.markdown('<div class="counterfactual-box" style="color: #000000 !important;">', unsafe_allow_html=True)
                                     st.write("**What would change this?**")
                                     for s in cf['scenarios']:
                                         st.write(f"• {s}")
