@@ -37,21 +37,25 @@ st.set_page_config(
 # This creates consistent visual styles across our app
 st.markdown("""
 <style>
-/* Fix for white text issue - make sure all text is visible */
+/* Set default text color to black for light backgrounds */
 .stApp {
     color: #000000 !important;
 }
-.main-header {  /* Styles the main title at the top */
+
+/* Main header - purple gradient with white text */
+.main-header {
     font-size: 2.5rem;
-    color: white !important;
+    color: #FFFFFF !important;
     text-align: center;
     padding: 1.5rem;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 12px;
     margin-bottom: 2rem;
 }
-.book-card {  /* Styles each book recommendation */
-    background: #f8f9fa;
+
+/* Book cards - light background with dark text */
+.book-card {
+    background: #f8f9fa !important;
     padding: 1.5rem;
     border-radius: 10px;
     border-left: 5px solid #667eea;
@@ -60,7 +64,7 @@ st.markdown("""
     transition: transform 0.2s;
     color: #000000 !important;
 }
-.book-card:hover {  /* Makes the card slide when you hover over it */
+.book-card:hover {
     transform: translateX(5px);
 }
 .book-card h4 {
@@ -69,7 +73,12 @@ st.markdown("""
 .book-card p {
     color: #000000 !important;
 }
-.explanation-box {  /* Yellow box for plain English explanations */
+.book-card strong {
+    color: #000000 !important;
+}
+
+/* Explanation boxes - yellow background with dark text */
+.explanation-box {
     background: #fff3cd !important;
     padding: 1rem;
     border-radius: 8px;
@@ -77,7 +86,9 @@ st.markdown("""
     margin: 0.5rem 0;
     color: #000000 !important;
 }
-.counterfactual-box {  /* Blue box for "what if" explanations */
+
+/* Counterfactual boxes - blue background with dark text */
+.counterfactual-box {
     background: #d1ecf1 !important;
     padding: 1rem;
     border-radius: 8px;
@@ -85,13 +96,17 @@ st.markdown("""
     margin: 0.5rem 0;
     color: #000000 !important;
 }
-.stButton > button {  /* Styles the "Get Recommendations" button */
+
+/* Buttons - purple gradient with white text */
+.stButton > button {
     width: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: #FFFFFF !important;
     font-weight: bold;
 }
-.valid-user-hint {  /* Styles the hint showing valid user IDs */
+
+/* Valid user hint - light blue with dark text */
+.valid-user-hint {
     background: #e8f4f8 !important;
     padding: 0.5rem;
     border-radius: 4px;
@@ -100,7 +115,26 @@ st.markdown("""
     border-left: 3px solid #17a2b8;
     margin-top: 0.25rem;
 }
-.metric-card {  /* Styles for performance metrics */
+
+/* Sidebar text - make sure it's readable */
+[data-testid="stSidebar"] {
+    background-color: #f0f2f6 !important;
+}
+[data-testid="stSidebar"] * {
+    color: #000000 !important;
+}
+[data-testid="stSidebar"] .stMarkdown {
+    color: #000000 !important;
+}
+[data-testid="stSidebar"] h1, 
+[data-testid="stSidebar"] h2, 
+[data-testid="stSidebar"] h3, 
+[data-testid="stSidebar"] h4 {
+    color: #000000 !important;
+}
+
+/* Metric cards */
+.metric-card {
     background: #f0f2f6;
     padding: 1rem;
     border-radius: 8px;
@@ -108,26 +142,44 @@ st.markdown("""
     border: 1px solid #e0e0e0;
     color: #000000 !important;
 }
-.download-btn {  /* Styles for download buttons */
+
+/* Download button */
+.download-btn {
     background: #28a745;
-    color: white;
+    color: #FFFFFF !important;
     padding: 0.5rem 1rem;
     border-radius: 5px;
     text-decoration: none;
 }
-/* Fix for tab text color */
+
+/* Tabs - make text visible */
 .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
     color: #000000 !important;
 }
-/* Fix for expander text */
+.stTabs [data-baseweb="tab"] {
+    color: #000000 !important;
+}
+
+/* Expander headers */
 .streamlit-expanderHeader {
     color: #000000 !important;
 }
-/* Fix for info boxes */
+.streamlit-expanderHeader p {
+    color: #000000 !important;
+}
+
+/* Alert/info boxes */
 .stAlert {
     color: #000000 !important;
 }
-/* Fix for metric labels */
+.stAlert p {
+    color: #000000 !important;
+}
+.stAlert strong {
+    color: #000000 !important;
+}
+
+/* Metrics - make text visible */
 [data-testid="stMetric"] {
     color: #000000 !important;
 }
@@ -137,12 +189,113 @@ st.markdown("""
 [data-testid="stMetricValue"] {
     color: #000000 !important;
 }
-/* Fix for all markdown text */
+
+/* Markdown text */
 div[data-testid="stMarkdown"] p {
     color: #000000 !important;
 }
-/* Fix for code blocks */
+div[data-testid="stMarkdown"] li {
+    color: #000000 !important;
+}
+div[data-testid="stMarkdown"] strong {
+    color: #000000 !important;
+}
+
+/* Code blocks */
 code {
+    color: #000000 !important;
+}
+
+/* Success messages (green) - keep green text but make it visible */
+div[data-testid="stAlert"] .stMarkdown {
+    color: #000000 !important;
+}
+.stSuccess {
+    color: #000000 !important;
+}
+.stSuccess p {
+    color: #000000 !important;
+}
+
+/* Error messages - keep error style but readable */
+.stError {
+    color: #721c24 !important;
+}
+.stError p {
+    color: #721c24 !important;
+}
+
+/* Info messages */
+.stInfo {
+    color: #0c5460 !important;
+}
+.stInfo p {
+    color: #0c5460 !important;
+}
+
+/* Warning messages */
+.stWarning {
+    color: #856404 !important;
+}
+.stWarning p {
+    color: #856404 !important;
+}
+
+/* Caption text */
+.stCaption {
+    color: #6c757d !important;
+}
+
+/* Expander content */
+.streamlit-expanderContent {
+    background-color: #ffffff !important;
+}
+.streamlit-expanderContent p {
+    color: #000000 !important;
+}
+.streamlit-expanderContent li {
+    color: #000000 !important;
+}
+
+/* Fix for the "Selected" info box */
+.stAlert .stMarkdown p {
+    color: #000000 !important;
+}
+
+/* Fix for the spinner text */
+.stSpinner {
+    color: #000000 !important;
+}
+.stSpinner p {
+    color: #000000 !important;
+}
+
+/* Fix for selectbox and text input labels */
+.stSelectbox label {
+    color: #000000 !important;
+}
+.stTextInput label {
+    color: #000000 !important;
+}
+.stSlider label {
+    color: #000000 !important;
+}
+.stCheckbox label {
+    color: #000000 !important;
+}
+
+/* Fix for the divider */
+hr {
+    border-color: #cccccc !important;
+}
+
+/* Fix for subheaders in sidebar */
+[data-testid="stSidebar"] .stSubheader {
+    color: #000000 !important;
+}
+
+/* Fix for the "Settings" header in sidebar */
+[data-testid="stSidebar"] .stHeader {
     color: #000000 !important;
 }
 </style>
@@ -484,23 +637,12 @@ def get_shap_explanation(book_title, data, n_features=10):
         # Create list of (word, importance) pairs
         top_features = [(feature_names[i], feature_values[i]) for i in top_indices if feature_values[i] > 0]
 
-        # If no features found, return a fallback explanation
-        if not top_features:
-            return {
-                'title': book_title,
-                'top_features': [("No specific features found", 0.0)]
-            }
-
         return {
             'title': book_title,
             'top_features': top_features  # List of important words and their scores
         }
-    except Exception as e:
-        # Return a fallback explanation instead of None
-        return {
-            'title': book_title,
-            'top_features': [("Feature explanation unavailable", 0.0)]
-        }
+    except Exception:
+        return None  # Return None if anything goes wrong
 
 
 def get_lime_explanation(book_title, data):
@@ -524,11 +666,7 @@ def get_lime_explanation(book_title, data):
         # Find the book
         matches = books_df[books_df['title'].str.lower().str.contains(book_title.lower(), na=False)]
         if len(matches) == 0:
-            return {
-                'title': book_title,
-                'explanation': "This book was recommended based on your preferences.",
-                'features': ["Similar to your reading history"]
-            }
+            return None
 
         # Get the book's data
         book = matches.iloc[0]
@@ -574,13 +712,8 @@ def get_lime_explanation(book_title, data):
             'explanation': "This book was recommended because: " + ", ".join(explanation_parts),
             'features': explanation_parts  # List of individual reasons
         }
-    except Exception as e:
-        # Return a fallback explanation
-        return {
-            'title': book_title,
-            'explanation': "This book was recommended based on your preferences.",
-            'features': ["Matches your reading history"]
-        }
+    except Exception:
+        return None
 
 
 def get_counterfactual_explanation(user_id, book_title, data):
@@ -608,10 +741,7 @@ def get_counterfactual_explanation(user_id, book_title, data):
         # Find the book
         matches = books_df[books_df['title'].str.lower().str.contains(book_title.lower(), na=False)]
         if len(matches) == 0:
-            return {
-                'title': book_title,
-                'scenarios': ["Try rating more books to get personalized recommendations"]
-            }
+            return None
 
         book = matches.iloc[0]
         scenarios = []  # List of "what if" scenarios
@@ -654,12 +784,8 @@ def get_counterfactual_explanation(user_id, book_title, data):
             'title': book_title,
             'scenarios': scenarios  # List of "what if" scenarios
         }
-    except Exception as e:
-        # Return a fallback
-        return {
-            'title': book_title,
-            'scenarios': ["Try rating more books to get personalized counterfactual explanations"]
-        }
+    except Exception:
+        return None
 
 
 # NEW: Show user activity visualization
@@ -1043,7 +1169,7 @@ def main():
                                 lime = get_lime_explanation(row['title'], data)
                                 if lime:
                                     # Display the explanation in a styled box with dark text
-                                    st.markdown(f'<div class="explanation-box" style="color: #000000 !important;">{lime["explanation"]}</div>', unsafe_allow_html=True)
+                                    st.markdown(f'<div class="explanation-box">{lime["explanation"]}</div>', unsafe_allow_html=True)
                                     st.write("**Key factors:**")
                                     # List each factor as a bullet point
                                     for f in lime['features']:
@@ -1055,7 +1181,7 @@ def main():
                             with tab3:
                                 cf = get_counterfactual_explanation(user_id, row['title'], data)
                                 if cf:
-                                    st.markdown('<div class="counterfactual-box" style="color: #000000 !important;">', unsafe_allow_html=True)
+                                    st.markdown('<div class="counterfactual-box">', unsafe_allow_html=True)
                                     st.write("**What would change this?**")
                                     for s in cf['scenarios']:
                                         st.write(f"• {s}")
