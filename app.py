@@ -877,8 +877,115 @@ def main():
             # Create a unique key for caching
             cache_key = f"{model_type}_{book_title}_{user_id}_{n_recs}_{content_weight}"
             
-            # Show a spinner while generating recommendations
+                        # Show a spinner while generating recommendations
             with st.spinner("Generating recommendations..."):
                 # Use cached recommendations if available
                 if model_type == "Content-Based":
-                    results = get_cached_recommendations
+                    results = get_cached_recommendations(
+                        cache_key, 
+                        recommend_content_based, 
+                        book_title, 
+                        data, 
+                        n_recs
+                    )
+                elif model_type == "Collaborative":
+                    results = get_cached_recommendations(
+                        cache_key, 
+                        recommend_collaborative, 
+                        user_id, 
+                        data, 
+                        n_recs
+                    )
+                else:  # Hybrid
+                    results = get_cached_recommendations(
+                        cache_key, 
+                        get_hybrid_recommendations, 
+                        user_id, 
+                        book_title, 
+                        data, 
+                        n_recs, 
+                        content_weight
+                    )
+                
+                # Apply diversity if enabled
+                if diversity_enabled and results is not None:
+                    results = ensure_diversity(results)
+
+            # Display results if we got any
+            if results is not None and len(results) > 0:
+                # Show the book the user selected
+                selected = books_df[books_df['title'] == book_title].iloc[0]
+                st.info(f"📖 **Selected:** {book_title} by {selected['authors']}")
+                st.divider()
+
+                # Add download button for recommendations
+                export_recommendations(results)
+                st.divider()
+
+                # Loop through each recommendation and display it
+                for _, row in results.iterrows():
+                    # Create a card for each book
+                    with st.container():
+                        # Display book information in a styled card
+                        st.markdown(f"""
+                        <div class="book-card">
+                            <h4>📚 {row['title']}</h4>
+                            <p><strong>Author:</strong> {row['authors']}</p>
+                            <p><strong>Genre:</strong> {row['top_genre']}</p>
+                            <p>⭐ {row['average_rating']:.2f} ({row['ratings_count']} ratings)</p>
+                            <p><strong>Score:</strong> {row['score']:.4f}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                        # Expandable section for explanations
+                        with st.expander("🔍 Why this recommendation?"):
+                            # Create tabs for different explanation types
+                            tab1, tab2, tab3 = st.tabs(["📊 Features", "💬 Plain English", "🔄 What If"])
+
+                            # Tab 1: Feature importance (SHAP-like)
+                            with tab1:
+                                shap = get_shap_explanation(row['title'], data)
+                                if shap and shap['top_features']:
+                                    # Create a bar chart of important features
+                                    features, values = zip(*shap['top_features'][:8])
+                                    fig, ax = plt.subplots(figsize=(8, 3))
+                                    colors = ['#2ecc71' if v > 0 else '#e74c3c' for v in values]
+                                    ax.barh(features, values, color=colors)
+                                    ax.set_xlabel('Feature Value')
+                                    ax.set_title('Top Contributing Features')
+                                    ax.invert_yaxis()  # Highest at top
+                                    st.pyplot(fig)  # Display the chart
+                                    plt.close()  # Clean up to save memory
+                                else:
+                                    st.info("Feature explanation not available")
+
+                            # Tab 2: Plain English explanation (LIME-like)
+                            with tab2:
+                                lime = get_lime_explanation(row['title'], data)
+                                if lime:
+                                    # Display the explanation in a styled box
+                                    st.markdown(f'<div class="explanation-box">{lime["explanation"]}</div>', unsafe_allow_html=True)
+                                    st.write("**Key factors:**")
+                                    # List each factor as a bullet point
+                                    for f in lime['features']:
+                                        st.write(f"• {f}")
+                                else:
+                                    st.info("Explanation not available")
+
+                            # Tab 3: Counterfactual ("What If") explanations
+                            with tab3:
+                                cf = get_counterfactual_explanation(user_id, row['title'], data)
+                                if cf:
+                                    st.markdown('<div class="counterfactual-box">', unsafe_allow_html=True)
+                                    st.write("**What would change this?**")
+                                    for s in cf['scenarios']:
+                                        st.write(f"• {s}")
+                                    st.markdown('</div>', unsafe_allow_html=True)
+                                else:
+                                    st.info("Counterfactual not available")
+            else:
+                # Show error if no recommendations found
+                st.error("No recommendations found. Please try a different book or user ID.")
+# This MUST be at the bottom of your file
+if __name__ == "__main__":
+    main()    
