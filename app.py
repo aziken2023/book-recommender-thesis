@@ -19,18 +19,6 @@ import os
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity
 import time
-import re
-import nltk
-from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
-
-# Download NLTK data if needed
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('stopwords', quiet=True)
-    nltk.download('wordnet', quiet=True)
-    nltk.download('punkt', quiet=True)
 
 # PAGE CONFIGURATION - CLEAN WHITE THEME
 st.set_page_config(
@@ -161,6 +149,11 @@ st.markdown("""
         color: #0c5460 !important;
         border-left: 3px solid #17a2b8;
         margin-top: 0.25rem;
+    }
+    
+    /* Fix for the "Selected" info box */
+    .stAlert .stMarkdown p {
+        color: #000000 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -600,7 +593,7 @@ def main():
                         </div>
                         """, unsafe_allow_html=True)
 
-                        # EXPLANATIONS - THIS IS THE KEY PART
+                        # EXPLANATIONS - SHAP, LIME & Counterfactual
                         with st.expander("🔍 Why this recommendation? (SHAP, LIME & Counterfactual)"):
                             
                             # Get all three explanations
