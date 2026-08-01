@@ -32,13 +32,17 @@ st.set_page_config(
     initial_sidebar_state="expanded"  # The sidebar starts open (not collapsed)
 )
 
-# CUSTOM CSS STYLING
-# CSS is like "makeup" for websites - it makes things look pretty
-# This creates consistent visual styles across our app
+# CUSTOM CSS STYLING - FORCED LIGHT THEME FOR READABILITY
+# This overrides Streamlit's default dark theme to ensure all text is visible
 st.markdown("""
 <style>
-/* Set default text color to black for light backgrounds */
+/* Force light background for the entire app */
 .stApp {
+    background-color: #ffffff !important;
+}
+
+/* Force all main text to be black */
+.stApp, .stApp p, .stApp div, .stApp span, .stApp label, .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6 {
     color: #000000 !important;
 }
 
@@ -51,6 +55,31 @@ st.markdown("""
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 12px;
     margin-bottom: 2rem;
+}
+
+/* Sidebar - force light background and dark text */
+[data-testid="stSidebar"] {
+    background-color: #f0f2f6 !important;
+}
+[data-testid="stSidebar"] * {
+    color: #000000 !important;
+}
+[data-testid="stSidebar"] .stMarkdown {
+    color: #000000 !important;
+}
+[data-testid="stSidebar"] h1, 
+[data-testid="stSidebar"] h2, 
+[data-testid="stSidebar"] h3, 
+[data-testid="stSidebar"] h4,
+[data-testid="stSidebar"] .stSubheader,
+[data-testid="stSidebar"] .stHeader {
+    color: #000000 !important;
+}
+[data-testid="stSidebar"] .stSelectbox label,
+[data-testid="stSidebar"] .stSlider label,
+[data-testid="stSidebar"] .stCheckbox label,
+[data-testid="stSidebar"] .stTextInput label {
+    color: #000000 !important;
 }
 
 /* Book cards - light background with dark text */
@@ -86,6 +115,9 @@ st.markdown("""
     margin: 0.5rem 0;
     color: #000000 !important;
 }
+.explanation-box p {
+    color: #000000 !important;
+}
 
 /* Counterfactual boxes - blue background with dark text */
 .counterfactual-box {
@@ -96,6 +128,9 @@ st.markdown("""
     margin: 0.5rem 0;
     color: #000000 !important;
 }
+.counterfactual-box p {
+    color: #000000 !important;
+}
 
 /* Buttons - purple gradient with white text */
 .stButton > button {
@@ -103,6 +138,9 @@ st.markdown("""
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
     color: #FFFFFF !important;
     font-weight: bold;
+}
+.stButton > button:hover {
+    color: #FFFFFF !important;
 }
 
 /* Valid user hint - light blue with dark text */
@@ -116,40 +154,18 @@ st.markdown("""
     margin-top: 0.25rem;
 }
 
-/* Sidebar text - make sure it's readable */
-[data-testid="stSidebar"] {
-    background-color: #f0f2f6 !important;
-}
-[data-testid="stSidebar"] * {
-    color: #000000 !important;
-}
-[data-testid="stSidebar"] .stMarkdown {
-    color: #000000 !important;
-}
-[data-testid="stSidebar"] h1, 
-[data-testid="stSidebar"] h2, 
-[data-testid="stSidebar"] h3, 
-[data-testid="stSidebar"] h4 {
-    color: #000000 !important;
-}
-
 /* Metric cards */
-.metric-card {
-    background: #f0f2f6;
-    padding: 1rem;
-    border-radius: 8px;
-    text-align: center;
-    border: 1px solid #e0e0e0;
+[data-testid="stMetric"] {
+    background-color: #f0f2f6 !important;
+    padding: 0.5rem !important;
+    border-radius: 8px !important;
     color: #000000 !important;
 }
-
-/* Download button */
-.download-btn {
-    background: #28a745;
-    color: #FFFFFF !important;
-    padding: 0.5rem 1rem;
-    border-radius: 5px;
-    text-decoration: none;
+[data-testid="stMetricLabel"] {
+    color: #000000 !important;
+}
+[data-testid="stMetricValue"] {
+    color: #000000 !important;
 }
 
 /* Tabs - make text visible */
@@ -159,12 +175,25 @@ st.markdown("""
 .stTabs [data-baseweb="tab"] {
     color: #000000 !important;
 }
+.stTabs [data-baseweb="tab-list"] button {
+    color: #000000 !important;
+}
 
 /* Expander headers */
 .streamlit-expanderHeader {
     color: #000000 !important;
+    background-color: #f8f9fa !important;
 }
 .streamlit-expanderHeader p {
+    color: #000000 !important;
+}
+.streamlit-expanderContent {
+    background-color: #ffffff !important;
+}
+.streamlit-expanderContent p {
+    color: #000000 !important;
+}
+.streamlit-expanderContent li {
     color: #000000 !important;
 }
 
@@ -178,19 +207,36 @@ st.markdown("""
 .stAlert strong {
     color: #000000 !important;
 }
+.stSuccess {
+    background-color: #d4edda !important;
+    color: #155724 !important;
+}
+.stSuccess p {
+    color: #155724 !important;
+}
+.stError {
+    background-color: #f8d7da !important;
+    color: #721c24 !important;
+}
+.stError p {
+    color: #721c24 !important;
+}
+.stInfo {
+    background-color: #d1ecf1 !important;
+    color: #0c5460 !important;
+}
+.stInfo p {
+    color: #0c5460 !important;
+}
+.stWarning {
+    background-color: #fff3cd !important;
+    color: #856404 !important;
+}
+.stWarning p {
+    color: #856404 !important;
+}
 
-/* Metrics - make text visible */
-[data-testid="stMetric"] {
-    color: #000000 !important;
-}
-[data-testid="stMetricLabel"] {
-    color: #000000 !important;
-}
-[data-testid="stMetricValue"] {
-    color: #000000 !important;
-}
-
-/* Markdown text */
+/* Markdown text everywhere */
 div[data-testid="stMarkdown"] p {
     color: #000000 !important;
 }
@@ -200,45 +246,17 @@ div[data-testid="stMarkdown"] li {
 div[data-testid="stMarkdown"] strong {
     color: #000000 !important;
 }
+div[data-testid="stMarkdown"] h1,
+div[data-testid="stMarkdown"] h2,
+div[data-testid="stMarkdown"] h3,
+div[data-testid="stMarkdown"] h4 {
+    color: #000000 !important;
+}
 
 /* Code blocks */
 code {
     color: #000000 !important;
-}
-
-/* Success messages (green) - keep green text but make it visible */
-div[data-testid="stAlert"] .stMarkdown {
-    color: #000000 !important;
-}
-.stSuccess {
-    color: #000000 !important;
-}
-.stSuccess p {
-    color: #000000 !important;
-}
-
-/* Error messages - keep error style but readable */
-.stError {
-    color: #721c24 !important;
-}
-.stError p {
-    color: #721c24 !important;
-}
-
-/* Info messages */
-.stInfo {
-    color: #0c5460 !important;
-}
-.stInfo p {
-    color: #0c5460 !important;
-}
-
-/* Warning messages */
-.stWarning {
-    color: #856404 !important;
-}
-.stWarning p {
-    color: #856404 !important;
+    background-color: #f8f9fa !important;
 }
 
 /* Caption text */
@@ -246,31 +264,12 @@ div[data-testid="stAlert"] .stMarkdown {
     color: #6c757d !important;
 }
 
-/* Expander content */
-.streamlit-expanderContent {
-    background-color: #ffffff !important;
-}
-.streamlit-expanderContent p {
-    color: #000000 !important;
-}
-.streamlit-expanderContent li {
-    color: #000000 !important;
+/* Divider */
+hr {
+    border-color: #dee2e6 !important;
 }
 
-/* Fix for the "Selected" info box */
-.stAlert .stMarkdown p {
-    color: #000000 !important;
-}
-
-/* Fix for the spinner text */
-.stSpinner {
-    color: #000000 !important;
-}
-.stSpinner p {
-    color: #000000 !important;
-}
-
-/* Fix for selectbox and text input labels */
+/* Selectbox and text input labels */
 .stSelectbox label {
     color: #000000 !important;
 }
@@ -284,18 +283,88 @@ div[data-testid="stAlert"] .stMarkdown {
     color: #000000 !important;
 }
 
-/* Fix for the divider */
-hr {
-    border-color: #cccccc !important;
+/* Selectbox dropdown text */
+.stSelectbox div[data-baseweb="select"] {
+    color: #000000 !important;
+}
+.stSelectbox div[data-baseweb="select"] * {
+    color: #000000 !important;
 }
 
-/* Fix for subheaders in sidebar */
-[data-testid="stSidebar"] .stSubheader {
+/* Text input text */
+.stTextInput input {
     color: #000000 !important;
+    background-color: #ffffff !important;
+}
+
+/* Spinner text */
+.stSpinner {
+    color: #000000 !important;
+}
+.stSpinner p {
+    color: #000000 !important;
+}
+
+/* Dataframe/table text */
+.dataframe {
+    color: #000000 !important;
+}
+.dataframe th {
+    color: #000000 !important;
+    background-color: #f8f9fa !important;
+}
+.dataframe td {
+    color: #000000 !important;
+}
+
+/* Success/error icons */
+.stAlert svg {
+    color: #000000 !important;
+}
+
+/* Column headers in sidebar */
+[data-testid="stSidebar"] .stColumn {
+    color: #000000 !important;
+}
+
+/* Fix for the "Selected" info box specifically */
+div[data-testid="stAlert"] .stMarkdown p {
+    color: #0c5460 !important;
+}
+
+/* Fix for all form elements in sidebar */
+[data-testid="stSidebar"] .stSelectbox div {
+    color: #000000 !important;
+}
+[data-testid="stSidebar"] .stTextInput input {
+    color: #000000 !important;
+    background-color: #ffffff !important;
+}
+
+/* Make sure all sidebar text is black */
+[data-testid="stSidebar"] .stMarkdown p,
+[data-testid="stSidebar"] .stMarkdown strong,
+[data-testid="stSidebar"] .stMarkdown em,
+[data-testid="stSidebar"] .stMarkdown h1,
+[data-testid="stSidebar"] .stMarkdown h2,
+[data-testid="stSidebar"] .stMarkdown h3,
+[data-testid="stSidebar"] .stMarkdown h4,
+[data-testid="stSidebar"] .stMarkdown li {
+    color: #000000 !important;
+}
+
+/* Fix for the sidebar divider text */
+[data-testid="stSidebar"] hr {
+    border-color: #cccccc !important;
 }
 
 /* Fix for the "Settings" header in sidebar */
 [data-testid="stSidebar"] .stHeader {
+    color: #000000 !important;
+}
+
+/* Fix for subheader in sidebar */
+[data-testid="stSidebar"] .stSubheader {
     color: #000000 !important;
 }
 </style>
