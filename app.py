@@ -171,8 +171,9 @@ def load_models():
 # NEW: CACHE FOR RECOMMENDATIONS
 # This is another "remember" button that stores recommendations
 # so we don't recalculate them unnecessarily
+# FIX: Added underscore to _rec_function to tell Streamlit not to hash it
 @st.cache_data
-def get_cached_recommendations(cache_key, rec_function, *args, **kwargs):
+def get_cached_recommendations(cache_key, _rec_function, *args, **kwargs):
     """
     Get recommendations from cache or compute them.
     
@@ -182,7 +183,8 @@ def get_cached_recommendations(cache_key, rec_function, *args, **kwargs):
     
     Parameters:
     - cache_key: A unique string to identify this recommendation
-    - rec_function: The function to call (content/collaborative/hybrid)
+    - _rec_function: The function to call (content/collaborative/hybrid)
+                     (underscore tells Streamlit not to hash this)
     - *args, **kwargs: The arguments to pass to the function
     
     Returns: The recommendations (from cache or newly computed)
@@ -197,7 +199,8 @@ def get_cached_recommendations(cache_key, rec_function, *args, **kwargs):
         return st.session_state['recommendation_cache'][cache_key]
     
     # Otherwise, compute the recommendations
-    result = rec_function(*args, **kwargs)
+    # Note: _rec_function (with underscore) is used here
+    result = _rec_function(*args, **kwargs)
     
     # Store the result for next time
     st.session_state['recommendation_cache'][cache_key] = result
@@ -754,6 +757,7 @@ def main():
     
     # If data couldn't be loaded, stop the app
     if data is None:
+        st.error("❌ Failed to load data. Please check the error messages above.")
         st.stop()  # st.stop() stops the app from running further
 
     # SIDEBAR - This is the panel on the left side of the screen
@@ -877,7 +881,7 @@ def main():
             # Create a unique key for caching
             cache_key = f"{model_type}_{book_title}_{user_id}_{n_recs}_{content_weight}"
             
-                        # Show a spinner while generating recommendations
+            # Show a spinner while generating recommendations
             with st.spinner("Generating recommendations..."):
                 # Use cached recommendations if available
                 if model_type == "Content-Based":
@@ -986,6 +990,8 @@ def main():
             else:
                 # Show error if no recommendations found
                 st.error("No recommendations found. Please try a different book or user ID.")
+
+
 # This MUST be at the bottom of your file
 if __name__ == "__main__":
-    main()    
+    main()
