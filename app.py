@@ -18,6 +18,12 @@ import os
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity
 import time
+from io import BytesIO
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
 
 # PAGE CONFIGURATION
 st.set_page_config(
@@ -27,7 +33,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CUSTOM CSS - CLEAN WHITE THEME WITH VISIBLE TEXT
+# CUSTOM CSS - CLEAN WHITE THEME (NO PURPLE)
 st.markdown("""
 <style>
     /* Main app - white background */
@@ -41,7 +47,7 @@ st.markdown("""
         color: #000000 !important;
     }
     
-    /* Main header */
+    /* Main header - clean white with subtle border */
     .main-header {
         font-size: 2.5rem;
         color: #000000 !important;
@@ -50,23 +56,26 @@ st.markdown("""
         background: #f8f9fa !important;
         border-radius: 12px;
         margin-bottom: 2rem;
-        border-bottom: 4px solid #667eea;
+        border-bottom: 4px solid #4a6fa5;
     }
     
-    /* Sidebar */
+    /* Sidebar - light gray */
     [data-testid="stSidebar"] {
         background-color: #f0f2f6 !important;
     }
     [data-testid="stSidebar"] * {
         color: #000000 !important;
     }
+    [data-testid="stSidebar"] .stMarkdown {
+        color: #000000 !important;
+    }
     
-    /* Book cards */
+    /* Book cards - clean white with left border */
     .book-card {
-        background: #f8f9fa !important;
+        background: #ffffff !important;
         padding: 1.5rem;
         border-radius: 10px;
-        border-left: 5px solid #667eea;
+        border-left: 5px solid #4a6fa5;
         margin-bottom: 1rem;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         color: #000000 !important;
@@ -75,38 +84,38 @@ st.markdown("""
         color: #000000 !important;
     }
     
-    /* Explanation boxes */
+    /* Explanation boxes - subtle colors */
     .explanation-box {
-        background: #fff3cd !important;
+        background: #fff8e1 !important;
         padding: 1rem;
         border-radius: 8px;
-        border-left: 4px solid #ffc107;
+        border-left: 4px solid #f9a825;
         margin: 0.5rem 0;
         color: #000000 !important;
     }
     .counterfactual-box {
-        background: #d1ecf1 !important;
+        background: #e3f2fd !important;
         padding: 1rem;
         border-radius: 8px;
-        border-left: 4px solid #17a2b8;
+        border-left: 4px solid #1e88e5;
         margin: 0.5rem 0;
         color: #000000 !important;
     }
     
-    /* Buttons */
+    /* Buttons - clean blue */
     .stButton > button {
         width: 100%;
-        background: #667eea !important;
+        background: #4a6fa5 !important;
         color: #FFFFFF !important;
         font-weight: bold;
         border: none !important;
     }
     .stButton > button:hover {
-        background: #5a6fd6 !important;
+        background: #3a5a8a !important;
         color: #FFFFFF !important;
     }
     
-    /* TABS - FIX: Make tab text black and visible */
+    /* TABS - Clean design */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
         background-color: #f8f9fa !important;
@@ -124,7 +133,7 @@ st.markdown("""
         background-color: #dee2e6 !important;
     }
     .stTabs [data-baseweb="tab"][aria-selected="true"] {
-        background-color: #667eea !important;
+        background-color: #4a6fa5 !important;
         color: #FFFFFF !important;
     }
     .stTabs [data-baseweb="tab"] p {
@@ -159,21 +168,17 @@ st.markdown("""
     .stTextInput input, .stSelectbox div {
         color: #000000 !important;
         background-color: #ffffff !important;
+        border: 1px solid #ced4da !important;
     }
     
     /* Valid user hint */
     .valid-user-hint {
-        background: #e8f4f8 !important;
+        background: #e3f2fd !important;
         padding: 0.5rem;
         border-radius: 4px;
-        color: #0c5460 !important;
-        border-left: 3px solid #17a2b8;
+        color: #0d47a1 !important;
+        border-left: 3px solid #1e88e5;
         margin-top: 0.25rem;
-    }
-    
-    /* Fix for info box text */
-    .stAlert .stMarkdown p {
-        color: #000000 !important;
     }
     
     /* Tab content area */
@@ -182,8 +187,8 @@ st.markdown("""
         background-color: #ffffff !important;
     }
     
-    /* Fix for selected tab text */
-    .stTabs [role="tablist"] button {
+    /* Remove any purple from info boxes */
+    .stAlert .stMarkdown p {
         color: #000000 !important;
     }
 </style>
@@ -229,7 +234,6 @@ def recommend_content_based(title, data, n=10):
     books_df = data['books_df']
     tfidf_matrix = data['tfidf_matrix']
 
-    # Case-insensitive search with partial matching
     matches = books_df[books_df['title'].str.lower().str.contains(title.lower(), na=False, regex=False)]
     if len(matches) == 0:
         return None
@@ -243,7 +247,7 @@ def recommend_content_based(title, data, n=10):
     ].copy()
     results['score'] = sim_scores[similar_indices]
     results['model'] = 'Content-Based'
-    results['explanation'] = 'Similar book content (genres, authors, description)'
+    results['explanation'] = 'Finds books with similar descriptions, genres, and authors using TF-IDF'
     return results
 
 def recommend_collaborative(user_id, data, n=10):
@@ -284,7 +288,7 @@ def recommend_collaborative(user_id, data, n=10):
         results['score'] = results['book_id'].map(score_map)
         results = results.sort_values('score', ascending=False)
         results['model'] = 'Collaborative'
-        results['explanation'] = f'Users similar to you rated this highly'
+        results['explanation'] = 'Uses SVD to find users with similar rating patterns'
         return results[['title', 'authors', 'top_genre', 'average_rating', 'ratings_count', 'score', 'model', 'explanation']]
     except Exception as e:
         st.error(f"Error in collaborative filtering: {e}")
@@ -325,11 +329,11 @@ def get_hybrid_recommendations(user_id, book_title, data, n=10, content_weight=0
     results['score'] = results['title'].map(lambda x: hybrid_scores[x])
     results = results.sort_values('score', ascending=False)
     results['model'] = 'Hybrid'
-    results['explanation'] = f'{content_weight*100:.0f}% content + {collab_weight*100:.0f}% collaborative'
+    results['explanation'] = f'Combines {content_weight*100:.0f}% content + {collab_weight*100:.0f}% collaborative'
     return results
 
 # ============================================
-# EXPLANATION FUNCTIONS WITH BETTER FALLBACKS
+# EXPLANATION FUNCTIONS
 # ============================================
 
 def get_shap_explanation(book_title, data, n_features=8):
@@ -492,6 +496,99 @@ def get_cached_recommendations(cache_key, rec_function, *args, **kwargs):
     st.session_state['recommendation_cache'][cache_key] = result
     return result
 
+# ============================================
+# PDF EXPORT FUNCTION
+# ============================================
+
+def create_pdf(results, selected_book_title, model_name, model_explanation):
+    """Create a PDF report of recommendations."""
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    
+    # Custom styles
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        textColor=colors.HexColor('#1a237e'),
+        spaceAfter=30
+    )
+    
+    heading_style = ParagraphStyle(
+        'CustomHeading',
+        parent=styles['Heading2'],
+        fontSize=16,
+        textColor=colors.HexColor('#0d47a1'),
+        spaceAfter=12
+    )
+    
+    normal_style = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontSize=11,
+        spaceAfter=6
+    )
+    
+    story = []
+    
+    # Title
+    story.append(Paragraph("📚 Book Recommendations Report", title_style))
+    story.append(Spacer(1, 0.1*inch))
+    
+    # Selected book
+    story.append(Paragraph(f"<b>Selected Book:</b> {selected_book_title}", normal_style))
+    story.append(Paragraph(f"<b>Model Used:</b> {model_name}", normal_style))
+    story.append(Paragraph(f"<b>Model Explanation:</b> {model_explanation}", normal_style))
+    story.append(Spacer(1, 0.2*inch))
+    
+    # Recommendations table
+    story.append(Paragraph("Recommendations", heading_style))
+    
+    # Prepare table data
+    table_data = [['#', 'Title', 'Author', 'Genre', 'Rating', 'Score']]
+    for i, (_, row) in enumerate(results.iterrows(), 1):
+        table_data.append([
+            str(i),
+            row['title'][:40] + '...' if len(str(row['title'])) > 40 else str(row['title']),
+            str(row['authors'])[:30] + '...' if len(str(row['authors'])) > 30 else str(row['authors']),
+            str(row['top_genre']),
+            f"{row['average_rating']:.2f}",
+            f"{row['score']:.4f}"
+        ])
+    
+    table = Table(table_data, colWidths=[0.3*inch, 2.2*inch, 1.5*inch, 1.0*inch, 0.8*inch, 0.8*inch])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4a6fa5')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+        ('TOPPADDING', (0, 1), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+    ]))
+    
+    story.append(table)
+    story.append(Spacer(1, 0.2*inch))
+    
+    # Footer
+    story.append(Paragraph("Generated by Explainable Book Recommender System", 
+                          styles['Italic']))
+    story.append(Paragraph(f"Generated on: {time.strftime('%Y-%m-%d %H:%M')}", 
+                          styles['Italic']))
+    
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
+# ============================================
+# MAIN APP
+# ============================================
+
 def main():
     """Main app function."""
     
@@ -552,6 +649,8 @@ def main():
                 st.info(f"🔄 Using valid ID: {user_id}")
 
         st.divider()
+        
+        # Model explanation (without showing thesis results)
         st.info("""
         **How the models work:**
         
@@ -571,13 +670,11 @@ def main():
         search_term = st.text_input("Enter book title", placeholder="e.g., Harry Potter")
 
         if search_term:
-            # Case-insensitive partial matching
             filtered = books_df[books_df['title'].str.lower().str.contains(search_term.lower(), na=False, regex=False)]
             if len(filtered) > 0:
                 selected_book = st.selectbox("Select a book", filtered['title'].tolist()[:50])
             else:
                 st.warning(f"No books found matching '{search_term}'")
-                st.info("Try a different search term or select from the dropdown below:")
                 selected_book = st.selectbox("Or select a book", books_df['title'].tolist()[:100])
         else:
             selected_book = st.selectbox("Select a book", books_df['title'].tolist()[:100])
@@ -613,7 +710,6 @@ def main():
             if results is not None and len(results) > 0:
                 selected = books_df[books_df['title'] == book_title].iloc[0]
                 
-                # Show model info
                 model_name = results.iloc[0]['model'] if 'model' in results.columns else model_type
                 model_explanation = results.iloc[0]['explanation'] if 'explanation' in results.columns else ""
                 
@@ -621,12 +717,13 @@ def main():
                 st.success(f"🔍 **Model:** {model_name} - {model_explanation}")
                 st.divider()
 
-                csv = results.to_csv(index=False)
+                # PDF Download Button
+                pdf_buffer = create_pdf(results, book_title, model_name, model_explanation)
                 st.download_button(
-                    label="📥 Download Recommendations as CSV",
-                    data=csv,
-                    file_name=f"recommendations_{int(time.time())}.csv",
-                    mime="text/csv"
+                    label="📄 Download Recommendations as PDF",
+                    data=pdf_buffer,
+                    file_name=f"recommendations_{int(time.time())}.pdf",
+                    mime="application/pdf"
                 )
                 st.divider()
 
@@ -654,8 +751,8 @@ def main():
                                 if shap_exp and shap_exp['top_features']:
                                     features, values = zip(*shap_exp['top_features'][:8])
                                     fig, ax = plt.subplots(figsize=(10, 4))
-                                    colors = ['#2ecc71' if v > 0 else '#e74c3c' for v in values]
-                                    ax.barh(features, values, color=colors)
+                                    colors_list = ['#2ecc71' if v > 0 else '#e74c3c' for v in values]
+                                    ax.barh(features, values, color=colors_list)
                                     ax.set_xlabel('Feature Importance')
                                     ax.set_title('Top Features Contributing to This Recommendation')
                                     ax.invert_yaxis()
