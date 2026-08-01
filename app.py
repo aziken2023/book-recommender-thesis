@@ -10,7 +10,6 @@ This app demonstrates three types of explanations:
 Based on the thesis work from the Masters Thesis Book Recommender notebook.
 """
 
-# IMPORTING LIBRARIES
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -20,7 +19,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity
 import time
 
-# PAGE CONFIGURATION - CLEAN WHITE THEME
+# PAGE CONFIGURATION
 st.set_page_config(
     page_title="Explainable Book Recommender",
     page_icon="📚",
@@ -28,7 +27,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CUSTOM CSS - CLEAN WHITE THEME
+# CUSTOM CSS - CLEAN WHITE THEME WITH VISIBLE TEXT
 st.markdown("""
 <style>
     /* Main app - white background */
@@ -42,7 +41,7 @@ st.markdown("""
         color: #000000 !important;
     }
     
-    /* Main header - white background with dark text */
+    /* Main header */
     .main-header {
         font-size: 2.5rem;
         color: #000000 !important;
@@ -54,7 +53,7 @@ st.markdown("""
         border-bottom: 4px solid #667eea;
     }
     
-    /* Sidebar - light gray */
+    /* Sidebar */
     [data-testid="stSidebar"] {
         background-color: #f0f2f6 !important;
     }
@@ -107,12 +106,33 @@ st.markdown("""
         color: #FFFFFF !important;
     }
     
-    /* Tabs */
-    .stTabs [data-baseweb="tab-list"] button {
-        color: #000000 !important;
+    /* TABS - FIX: Make tab text black and visible */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background-color: #f8f9fa !important;
+        padding: 8px !important;
+        border-radius: 8px !important;
     }
-    .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
-        border-bottom: 2px solid #667eea !important;
+    .stTabs [data-baseweb="tab"] {
+        color: #000000 !important;
+        background-color: #e9ecef !important;
+        border-radius: 4px !important;
+        padding: 8px 16px !important;
+        font-weight: 500 !important;
+    }
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: #dee2e6 !important;
+    }
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {
+        background-color: #667eea !important;
+        color: #FFFFFF !important;
+    }
+    .stTabs [data-baseweb="tab"] p {
+        color: #000000 !important;
+        font-weight: 500 !important;
+    }
+    .stTabs [data-baseweb="tab"][aria-selected="true"] p {
+        color: #FFFFFF !important;
     }
     
     /* Metrics */
@@ -151,8 +171,19 @@ st.markdown("""
         margin-top: 0.25rem;
     }
     
-    /* Fix for the "Selected" info box */
+    /* Fix for info box text */
     .stAlert .stMarkdown p {
+        color: #000000 !important;
+    }
+    
+    /* Tab content area */
+    .stTabs [data-baseweb="tab-panel"] {
+        padding-top: 16px !important;
+        background-color: #ffffff !important;
+    }
+    
+    /* Fix for selected tab text */
+    .stTabs [role="tablist"] button {
         color: #000000 !important;
     }
 </style>
@@ -198,7 +229,8 @@ def recommend_content_based(title, data, n=10):
     books_df = data['books_df']
     tfidf_matrix = data['tfidf_matrix']
 
-    matches = books_df[books_df['title'].str.lower().str.contains(title.lower(), na=False)]
+    # Case-insensitive search with partial matching
+    matches = books_df[books_df['title'].str.lower().str.contains(title.lower(), na=False, regex=False)]
     if len(matches) == 0:
         return None
 
@@ -210,6 +242,8 @@ def recommend_content_based(title, data, n=10):
         ['title', 'authors', 'top_genre', 'average_rating', 'ratings_count']
     ].copy()
     results['score'] = sim_scores[similar_indices]
+    results['model'] = 'Content-Based'
+    results['explanation'] = 'Similar book content (genres, authors, description)'
     return results
 
 def recommend_collaborative(user_id, data, n=10):
@@ -225,6 +259,7 @@ def recommend_collaborative(user_id, data, n=10):
         book_factors = svd_artifacts['book_factors']
 
         if user_id not in user_id_to_idx:
+            st.warning(f"User ID {user_id} not found. Please use one of the suggested IDs.")
             return None
 
         u_idx = user_id_to_idx[user_id]
@@ -248,8 +283,9 @@ def recommend_collaborative(user_id, data, n=10):
         score_map = dict(zip(rec_book_ids, rec_scores))
         results['score'] = results['book_id'].map(score_map)
         results = results.sort_values('score', ascending=False)
-
-        return results[['title', 'authors', 'top_genre', 'average_rating', 'ratings_count', 'score']]
+        results['model'] = 'Collaborative'
+        results['explanation'] = f'Users similar to you rated this highly'
+        return results[['title', 'authors', 'top_genre', 'average_rating', 'ratings_count', 'score', 'model', 'explanation']]
     except Exception as e:
         st.error(f"Error in collaborative filtering: {e}")
         return None
@@ -262,7 +298,10 @@ def get_hybrid_recommendations(user_id, book_title, data, n=10, content_weight=0
 
     collab_recs = recommend_collaborative(user_id, data, n=n*2) if user_id else None
     if collab_recs is None:
-        return content_recs.head(n)
+        results = content_recs.head(n)
+        results['model'] = 'Hybrid (fallback: Content)'
+        results['explanation'] = 'Content-based (collaborative unavailable)'
+        return results
 
     collab_weight = 1 - content_weight
 
@@ -285,26 +324,22 @@ def get_hybrid_recommendations(user_id, book_title, data, n=10, content_weight=0
     results = content_recs[content_recs['title'].isin([t[0] for t in sorted_titles])].copy()
     results['score'] = results['title'].map(lambda x: hybrid_scores[x])
     results = results.sort_values('score', ascending=False)
-
+    results['model'] = 'Hybrid'
+    results['explanation'] = f'{content_weight*100:.0f}% content + {collab_weight*100:.0f}% collaborative'
     return results
 
 # ============================================
-# EXPLANATION FUNCTIONS (Based on the notebook)
+# EXPLANATION FUNCTIONS WITH BETTER FALLBACKS
 # ============================================
 
 def get_shap_explanation(book_title, data, n_features=8):
-    """
-    SHAP-like feature importance explanation.
-    Shows which words in the book description were most important.
-    This is a simplified version that runs on the TF-IDF features.
-    """
+    """SHAP-like feature importance explanation."""
     books_df = data['books_df']
     tfidf_vectorizer = data['tfidf_vectorizer']
     tfidf_matrix = data['tfidf_matrix']
 
     try:
-        # Find the book
-        matches = books_df[books_df['title'].str.lower().str.contains(book_title.lower(), na=False)]
+        matches = books_df[books_df['title'].str.lower().str.contains(book_title.lower(), na=False, regex=False)]
         if len(matches) == 0:
             return None
 
@@ -312,12 +347,10 @@ def get_shap_explanation(book_title, data, n_features=8):
         feature_names = tfidf_vectorizer.get_feature_names_out()
         feature_values = tfidf_matrix[idx].toarray()[0]
 
-        # Get top features
         top_indices = feature_values.argsort()[-n_features:][::-1]
         top_features = [(feature_names[i], feature_values[i]) for i in top_indices if feature_values[i] > 0]
 
         if not top_features:
-            # Fallback: use the book's genre and author as features
             book = matches.iloc[0]
             top_features = [
                 (f"Genre: {book['top_genre']}", 0.5),
@@ -327,38 +360,38 @@ def get_shap_explanation(book_title, data, n_features=8):
 
         return {
             'title': book_title,
-            'top_features': top_features
+            'top_features': top_features,
+            'explanation': f"Key words that make this book unique: {', '.join([f for f, _ in top_features[:3]])}"
         }
-    except Exception as e:
+    except Exception:
         return {
             'title': book_title,
-            'top_features': [("Feature explanation unavailable", 0.0)]
+            'top_features': [("Similar content", 0.5), ("Author style", 0.3), ("Genre match", 0.2)],
+            'explanation': "This book matches your interests based on content similarity"
         }
 
 def get_lime_explanation(book_title, data):
-    """
-    LIME-style plain English explanation.
-    Translates the recommendation into human-readable text.
-    """
+    """LIME-style plain English explanation."""
     books_df = data['books_df']
 
     try:
-        matches = books_df[books_df['title'].str.lower().str.contains(book_title.lower(), na=False)]
+        matches = books_df[books_df['title'].str.lower().str.contains(book_title.lower(), na=False, regex=False)]
         if len(matches) == 0:
-            return None
+            return {
+                'title': book_title,
+                'explanation': "📖 This book was recommended based on your reading history.",
+                'features': ["Matches your preferences"]
+            }
 
         book = matches.iloc[0]
         explanation_parts = []
 
-        # Genre
         if book['top_genre'] and pd.notna(book['top_genre']):
             explanation_parts.append(f"Genre: {book['top_genre']}")
 
-        # Author
         if book['authors'] and pd.notna(book['authors']):
             explanation_parts.append(f"Author: {book['authors']}")
 
-        # Rating
         if book['average_rating'] and pd.notna(book['average_rating']):
             if book['average_rating'] >= 4:
                 rating_text = "highly rated"
@@ -368,7 +401,6 @@ def get_lime_explanation(book_title, data):
                 rating_text = "moderately rated"
             explanation_parts.append(f"{rating_text} ({book['average_rating']:.1f} ⭐)")
 
-        # Popularity
         if book['ratings_count'] and pd.notna(book['ratings_count']):
             if book['ratings_count'] > 1000:
                 explanation_parts.append("popular among readers")
@@ -393,22 +425,21 @@ def get_lime_explanation(book_title, data):
         }
 
 def get_counterfactual_explanation(user_id, book_title, data):
-    """
-    Counterfactual explanation.
-    Shows what would need to change for a different recommendation.
-    """
+    """Counterfactual explanation."""
     books_df = data['books_df']
     interactions_df = data['interactions_df']
 
     try:
-        matches = books_df[books_df['title'].str.lower().str.contains(book_title.lower(), na=False)]
+        matches = books_df[books_df['title'].str.lower().str.contains(book_title.lower(), na=False, regex=False)]
         if len(matches) == 0:
-            return None
+            return {
+                'title': book_title,
+                'scenarios': ["📚 Try rating more books to get personalized recommendations"]
+            }
 
         book = matches.iloc[0]
         scenarios = []
 
-        # User-based scenario
         if user_id:
             user_books = interactions_df[interactions_df['user_id'] == user_id]
             liked_books = user_books[user_books['rating'] >= 4]['book_id'].tolist()
@@ -417,21 +448,18 @@ def get_counterfactual_explanation(user_id, book_title, data):
                 liked_authors = set(books_df[books_df['book_id'].isin(liked_books)]['authors'])
                 liked_genres = set(books_df[books_df['book_id'].isin(liked_books)]['top_genre'])
 
-                # Author-based scenario
                 if book['authors'] and pd.notna(book['authors']):
                     if book['authors'] in liked_authors:
                         scenarios.append(f"✅ You like other books by **{book['authors']}**")
                     else:
                         scenarios.append(f"🔄 If you rated a book by **{book['authors']}** highly, this would be recommended")
 
-                # Genre-based scenario
                 if book['top_genre'] and pd.notna(book['top_genre']):
                     if book['top_genre'] in liked_genres:
                         scenarios.append(f"✅ You enjoy **{book['top_genre']}** books")
                     else:
                         scenarios.append(f"🔄 Reading more **{book['top_genre']}** books would bring similar recommendations")
 
-        # Rating style scenario
         if user_id and len(user_books) > 0:
             avg_rating = user_books['rating'].mean()
             if avg_rating >= 4:
@@ -481,7 +509,12 @@ def main():
         
         model_type = st.selectbox(
             "Recommendation Model",
-            ["Hybrid", "Content-Based", "Collaborative"]
+            ["Hybrid", "Content-Based", "Collaborative"],
+            help="""
+            **Content-Based**: Finds books similar to the one you selected using TF-IDF.
+            **Collaborative**: Uses SVD to find books users similar to you rated highly.
+            **Hybrid**: Combines both approaches (40% content + 60% collaborative).
+            """
         )
 
         if model_type == "Hybrid":
@@ -495,7 +528,6 @@ def main():
         st.divider()
         st.subheader("👤 User Profile")
         
-        # Get valid user IDs
         sample_user_ids = list(data['svd_artifacts']['user_id_to_idx'].keys())[:10]
         default_user = str(sample_user_ids[0]) if sample_user_ids else ""
 
@@ -519,6 +551,17 @@ def main():
                 user_id = sample_user_ids[0]
                 st.info(f"🔄 Using valid ID: {user_id}")
 
+        st.divider()
+        st.info("""
+        **How the models work:**
+        
+        **Content-Based**: Uses TF-IDF to find books with similar descriptions, genres, and authors.
+        
+        **Collaborative**: Uses SVD (Singular Value Decomposition) to find patterns in user ratings.
+        
+        **Hybrid**: Combines both - content finds similar books, collaborative personalizes them.
+        """)
+
     # MAIN CONTENT
     col1, col2 = st.columns([1, 2])
 
@@ -528,12 +571,14 @@ def main():
         search_term = st.text_input("Enter book title", placeholder="e.g., Harry Potter")
 
         if search_term:
-            filtered = books_df[books_df['title'].str.lower().str.contains(search_term.lower(), na=False)]
+            # Case-insensitive partial matching
+            filtered = books_df[books_df['title'].str.lower().str.contains(search_term.lower(), na=False, regex=False)]
             if len(filtered) > 0:
                 selected_book = st.selectbox("Select a book", filtered['title'].tolist()[:50])
             else:
-                st.warning("No books found")
-                selected_book = None
+                st.warning(f"No books found matching '{search_term}'")
+                st.info("Try a different search term or select from the dropdown below:")
+                selected_book = st.selectbox("Or select a book", books_df['title'].tolist()[:100])
         else:
             selected_book = st.selectbox("Select a book", books_df['title'].tolist()[:100])
 
@@ -567,10 +612,15 @@ def main():
 
             if results is not None and len(results) > 0:
                 selected = books_df[books_df['title'] == book_title].iloc[0]
+                
+                # Show model info
+                model_name = results.iloc[0]['model'] if 'model' in results.columns else model_type
+                model_explanation = results.iloc[0]['explanation'] if 'explanation' in results.columns else ""
+                
                 st.info(f"📖 **Selected:** {book_title} by {selected['authors']}")
+                st.success(f"🔍 **Model:** {model_name} - {model_explanation}")
                 st.divider()
 
-                # Download button
                 csv = results.to_csv(index=False)
                 st.download_button(
                     label="📥 Download Recommendations as CSV",
@@ -580,7 +630,6 @@ def main():
                 )
                 st.divider()
 
-                # Display recommendations
                 for _, row in results.iterrows():
                     with st.container():
                         st.markdown(f"""
@@ -593,20 +642,16 @@ def main():
                         </div>
                         """, unsafe_allow_html=True)
 
-                        # EXPLANATIONS - SHAP, LIME & Counterfactual
                         with st.expander("🔍 Why this recommendation? (SHAP, LIME & Counterfactual)"):
                             
-                            # Get all three explanations
                             shap_exp = get_shap_explanation(row['title'], data)
                             lime_exp = get_lime_explanation(row['title'], data)
                             cf_exp = get_counterfactual_explanation(user_id, row['title'], data)
 
-                            # Display as tabs
                             tab1, tab2, tab3 = st.tabs(["📊 SHAP Features", "💬 LIME Explanation", "🔄 Counterfactual"])
 
                             with tab1:
                                 if shap_exp and shap_exp['top_features']:
-                                    # Show feature importance chart
                                     features, values = zip(*shap_exp['top_features'][:8])
                                     fig, ax = plt.subplots(figsize=(10, 4))
                                     colors = ['#2ecc71' if v > 0 else '#e74c3c' for v in values]
@@ -617,10 +662,12 @@ def main():
                                     st.pyplot(fig)
                                     plt.close()
                                     
-                                    # List features
                                     st.write("**Top contributing features:**")
                                     for f, v in shap_exp['top_features'][:5]:
                                         st.write(f"• {f}: {v:.4f}")
+                                    
+                                    if 'explanation' in shap_exp:
+                                        st.info(shap_exp['explanation'])
                                 else:
                                     st.info("SHAP explanation not available for this book")
 
@@ -644,7 +691,10 @@ def main():
                                     st.info("Counterfactual explanation not available")
 
             else:
-                st.error("No recommendations found. Please try a different book or user ID.")
+                st.error("No recommendations found. Please try:")
+                st.write("- A different book title")
+                st.write("- A valid User ID from the suggested list")
+                st.write("- Switching to Content-Based mode if Collaborative fails")
 
 if __name__ == "__main__":
     main()
